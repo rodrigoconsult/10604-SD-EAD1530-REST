@@ -4,7 +4,8 @@ interface
 
 uses
   UPedidoServiceIntf, UPizzaTamanhoEnum, UPizzaSaborEnum,
-  UPedidoRepositoryIntf, UPedidoRetornoDTOImpl, UClienteServiceIntf;
+  UPedidoRepositoryIntf, UPedidoRetornoDTOImpl, UClienteServiceIntf,
+  FireDAC.Comp.Client;
 
 type
   TPedidoService = class(TInterfacedObject, IPedidoService)
@@ -16,8 +17,12 @@ type
     function calcularTempoPreparo(const APizzaTamanho: TPizzaTamanhoEnum; const APizzaSabor: TPizzaSaborEnum): Integer;
   public
     function efetuarPedido(const APizzaTamanho: TPizzaTamanhoEnum; const APizzaSabor: TPizzaSaborEnum; const ADocumentoCliente: String): TPedidoRetornoDTO;
+    function ConsultarPedido(const ADocumento: String): String;
+    function ConsultarPed(const ADocumentoCliente: string): TPedidoRetornoDTO;
+
 
     constructor Create; reintroduce;
+
   end;
 
 implementation
@@ -54,6 +59,38 @@ begin
     enGrande:
       Result := 40;
   end;
+end;
+
+function TPedidoService.ConsultarPed(const ADocumentoCliente: string): TPedidoRetornoDTO;
+var
+  oQuery:TFdQuery;
+begin
+try
+  oQuery := TFDQuery.Create(nil);
+  FPedidoRepository.ConsultaPed(ADocumentoCliente,oQuery);
+
+  if oQuery.IsEmpty then
+    raise Exception.Create('Não há pedidos localizados para o documento: ' + ADocumentoCliente + ' !');
+
+  Result := TPedidoRetornoDTO.Create(
+            oQuery.FieldByName('tamanho').Value,
+            oQuery.FieldByName('sabor').Value,
+            oQuery.FieldByName('vl_pedido').Value,
+            oQuery.FieldByName('nr_tempopedido').Value
+              );
+
+finally
+  oQuery.Free;
+
+end;
+
+
+end;
+
+function TPedidoService.ConsultarPedido(
+  const ADocumento: String): String;
+begin
+  Result := FPedidoRepository.ConsultarPedido(ADocumento);
 end;
 
 constructor TPedidoService.Create;
